@@ -37,7 +37,7 @@ WROVER_KIT_LCD wroverlcd;
 
 #define SENDED_FILE_NAME "/db/sended.txt"
 #define REMOTE_PORT 80
-#define REMOTE_HOST "ya.ru"
+#define REMOTE_HOST "service-pb.ru"
 #define WEB_URL_API "http://" REMOTE_HOST "/api"
 // #define FTP_SERVER "127.0.0.1"
 // #define FTP_PORT 21

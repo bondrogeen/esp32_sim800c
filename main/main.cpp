@@ -30,7 +30,7 @@ void nvs_data_save(const char* data)
 void nvs_check_timestamp(int32_t checked_time_stamp, bool save)
 {
 #ifdef DEBUG_NVS
-	printf("\nNVS: CHECKED TIMESTAMP: %d\n", checked_time_stamp);
+	printf("NVS: CHECKED TIMESTAMP: %d\n\r", checked_time_stamp);
 #endif
 	if(hnvs)
 	{
@@ -43,7 +43,7 @@ void nvs_check_timestamp(int32_t checked_time_stamp, bool save)
 		else
 			checked_time_stamp = current_time_stamp;
 	#ifdef DEBUG_NVS
-		printf("\nNVS: CURRENT TIMESTAMP: %d\n", current_time_stamp);
+		printf("NVS: CURRENT TIMESTAMP: %d\n\r", current_time_stamp);
 	#endif
 		set_time_stamp(current_time_stamp);
 		err = nvs_set_i32(hnvs, "timestamp", current_time_stamp);
@@ -66,15 +66,15 @@ void nvs_first_init(int32_t checked_time_stamp)
 	{
 	#ifdef DEBUG_NVS_ERASE_ALL
 		err = nvs_erase_all(hnvs);
-		printf("\nNVS: erase_all = %d\n", err);
+		printf("NVS: erase_all = %d\n\r", err);
 		if(err == ESP_OK)
 		{
 			err = nvs_commit(hnvs);
-			printf("\nNVS: commit = %d\n", err);
+			printf("NVS: commit = %d\n\r", err);
 		}
 	#endif
 	#ifdef DEBUG_NVS
-		printf("\nNVS: nvs_first_init\n");
+		printf("NVS: nvs_first_init\n\r");
 	#endif
 		nvs_check_timestamp(checked_time_stamp, true);
 		//////////////////////
@@ -183,8 +183,8 @@ time_t check_timestamp_from_http()
 	time_t time_array[]  = {gsm_get_time_from_http(), get_time_stamp(), default_current_time_stamp, last_time_stamp_sended, last_time_stamp};
 	last_time_stamp_sended = get_max_time_stamp(time_array);
 #ifdef DEBUG_MAIN
-	printf("\n%ld\t%ld\t%ld\t%ld\t%ld\n", time_array[0], time_array[1], time_array[2], time_array[3], time_array[4]);
-	printf("\nCHECK_TIMESTAMP_FROM_HTTP (last_time_stamp_sended)\n");
+	printf("%ld\t%ld\t%ld\t%ld\t%ld\n\r", time_array[0], time_array[1], time_array[2], time_array[3], time_array[4]);
+	printf("CHECK_TIMESTAMP_FROM_HTTP (last_time_stamp_sended)\n\r");
 #endif
 	nvs_check_timestamp(last_time_stamp_sended, true);
 	return last_time_stamp_sended;
@@ -193,7 +193,7 @@ time_t check_timestamp_from_http()
 void gsm_reboot()
 {
 #ifdef DEBUG_MAIN
-	printf("\nGSM_REBOOT\n");
+	printf("GSM_REBOOT\n\r");
 #endif
 	modem.disconnect();
 	modem.shutdown(true);
@@ -281,14 +281,14 @@ void gsm_send_location()
 			last_time_stamp_sended = str_date_time_to_timestamp(dt, tm);
 			last_time_stamp = get_time_stamp();
 		#ifdef DEBUG_MAIN
-			printf("\n===TIME STAMP===\n(last_time_stamp_sended) %d > %d (last_time_stamp)\n===END===\n", last_time_stamp_sended, last_time_stamp);
+			printf("===TIME STAMP===\n\r(last_time_stamp_sended) %d > %d (last_time_stamp)\n\r===END===\n\r", last_time_stamp_sended, last_time_stamp);
 		#endif
 			if(last_time_stamp_sended > last_time_stamp)
 				nvs_check_timestamp(last_time_stamp_sended, true);// set_time_stamp(last_time_stamp_sended);
 			else if(last_time_stamp_sended < last_time_stamp)
 				last_time_stamp_sended = last_time_stamp;
 		#ifdef DEBUG_MAIN
-			printf("\n===LOCATION===\n%s\n%s\n%s\n%s\n%d\n===END===\n", lat, lon, dt, tm, last_time_stamp_sended);
+			printf("===LOCATION===\n\r%s\n\r%s\n\r%s\n\r%s\n\r%d\n\r===END===\n\r", lat, lon, dt, tm, last_time_stamp_sended);
 		#endif
 		}
 		free(lat); free(lon); free(dt); free(tm);
@@ -298,12 +298,12 @@ void gsm_send_location()
 void update_over_gsm_http()
 {
 #ifdef DEBUG_OTA
-	printf("...STARTING UPDATE FIRMWARE OVER GSM HTTP...\n");
+	printf("...STARTING UPDATE FIRMWARE OVER GSM HTTP...\n\r");
 #endif
 	if(!modem.connect(REMOTE_HOST, REMOTE_PORT))
 	{
 	#ifdef DEBUG_OTA
-		printf("ESP_OTA: connect to %s:%d fail\n", REMOTE_HOST, REMOTE_PORT);
+		printf("ESP_OTA: connect to %s:%d fail\n\r", REMOTE_HOST, REMOTE_PORT);
 	#endif
 	}
 	else
@@ -316,7 +316,7 @@ void update_over_gsm_http()
 		if(!client.connect(REMOTE_HOST, REMOTE_PORT))
 		{
 		#ifdef DEBUG_OTA
-			printf("CONNECT FAIL\n");
+			printf("CONNECT FAIL\n\r");
 		#endif
 			return;
 		}
@@ -327,7 +327,7 @@ void update_over_gsm_http()
 			if(millis() - timeout > 5000L)
 			{
 			#ifdef DEBUG_OTA
-				printf(">>> Client Timeout !\n");
+				printf(">>> Client Timeout !\n\r");
 			#endif
 				client.stop();
 				delay(10000L);
@@ -339,7 +339,7 @@ void update_over_gsm_http()
 			String line = client.readStringUntil('\n');
 			line.trim();
 		#ifdef DEBUG_OTA
-			printf("LINE:%s\n", line.c_str());
+			printf("LINE:%s\n\r", line.c_str());
 		#endif
 			line.toLowerCase();
 			if(line.startsWith("content-length:"))
@@ -352,7 +352,7 @@ void update_over_gsm_http()
 			}
 		}
 	#ifdef DEBUG_OTA
-		printf("READING RESPONSE DATA = %d\n", contentLength);
+		printf("READING RESPONSE DATA = %d\n\r", contentLength);
 	#endif
 		timeout = millis();
 		uint32_t iterations = 0, iteration = 0;
@@ -368,7 +368,7 @@ void update_over_gsm_http()
 				{
 					iterations += OTA_BUFFSIZE;
 				#ifdef DEBUG_OTA
-					printf("0: %d / %d\n", OTA_BUFFSIZE, iterations);
+					printf("0: %d / %d\n\r", OTA_BUFFSIZE, iterations);
 				#endif
 					iteration = 0;
 				}
@@ -379,19 +379,19 @@ void update_over_gsm_http()
 			{
 				iterations += iteration;
 			#ifdef DEBUG_OTA
-				printf("1: %d / %d\n", iteration, iterations);
+				printf("1: %d / %d\n\r", iteration, iterations);
 			#endif
 				iteration = 0;
 			}
 		}
 	#ifdef DEBUG_OTA
-		printf("%d\n", iterations);
+		printf("%d\n\r", iterations);
 	#endif
 		fclose(f);
 		if(iterations == contentLength)
 		{
 		#ifdef DEBUG_OTA
-			printf("Prepare to restart system!\n");
+			printf("Prepare to restart system!\n\r");
 		#endif
 			modem.shutdown(true);
 			esp_restart();
@@ -404,18 +404,18 @@ void update_over_gsm_http()
 void nvs_sync_with_server(void* params)
 {
 #ifdef DEBUG_NVS
-	printf("NVS: **********************\n");
-	print_log("NVS: START GSM TASK\n");
-	printf("NVS: **********************\n");
+	printf("NVS: **********************\n\r");
+	print_log("NVS: START GSM TASK\n\r");
+	printf("NVS: **********************\n\r");
 #endif
 	// while(xSemaphoreTakeFromISR(xSemaphore, NULL) != pdPASS) {vTaskDelay(3000 / portTICK_RATE_MS);}
 	gsm_no_problem = modem.gsm_init();
 	if(gsm_no_problem)
 	{
 	#ifdef DEBUG_NVS
-		printf("\nNVS: **********************\n");
-		print_log("NVS: GSM NO PROBLEM\n");
-		printf("NVS: **********************\n");
+		printf("NVS: **********************\n\r");
+		print_log("NVS: GSM NO PROBLEM\n\r");
+		printf("NVS: **********************\n\r");
 	#endif
 		//// gsm_tcp_send_file();
 		// String host = "testftp.ru";//String(REMOTE_HOST);
@@ -451,7 +451,7 @@ void nvs_sync_with_server(void* params)
 			last_time_stamp_sended = default_current_time_stamp;
 		set_time_stamp(last_time_stamp_sended);
 	#ifdef DEBUG_NVS
-		print_log("NVS: GSM PROBLEM\n");
+		print_log("NVS: GSM PROBLEM\n\r");
 	#endif
 	}
 	global_current_day = get_day_of_month();
@@ -470,7 +470,7 @@ void nvs_sync_with_server(void* params)
 		while(1)
 		{
 		#ifdef DEBUG_NVS
-			print_log("NVS: CASH DATA COUNTER: %d\n", nvs_data_counter);
+			print_log("NVS: CASH DATA COUNTER: %d\n\r", nvs_data_counter);
 		#endif
 			if(!gsm_no_problem)//DELAY  IF  GSM  PROBLEM
 			{
@@ -493,7 +493,7 @@ void nvs_sync_with_server(void* params)
 							send_ppm = false;
 							gsm_send_water_quality_via_http(current_middle_water_value);
 						#ifdef DEBUG_WATER
-							print_log("\n=== WATER SENDED TO SERVER ===\n");
+							print_log("=== WATER SENDED TO SERVER ===\n\r");
 						#endif
 						}
 						if(water_counter > 1000)
@@ -505,7 +505,7 @@ void nvs_sync_with_server(void* params)
 							{
 								current_middle_water_value = get_water_quality_value();
 							#ifdef DEBUG_WATER
-								print_log("\n=== START SEND PPM: %ld (count %d) last %ld ===\n", current_middle_water_value, water_current_item, ppms[water_current_item-1]);
+								print_log("=== START SEND PPM: %ld (count %d) last %ld ===\n\r", current_middle_water_value, water_current_item, ppms[water_current_item-1]);
 							#endif
 								water_current_item = 0;
 								send_ppm = true;
@@ -516,7 +516,7 @@ void nvs_sync_with_server(void* params)
 				}
 			#endif
 			#ifdef DEBUG_NVS
-				print_log("NVS: LOOP INDEX: %d\n", i);
+				print_log("NVS: LOOP INDEX: %d\n\r", i);
 			#endif
 				while(xSemaphoreTakeFromISR(xSemaphore, NULL) != pdPASS){vTaskDelay(2000/portTICK_RATE_MS);}
 				// printf("\nCLEAR DATA %s\n", data);
@@ -528,7 +528,7 @@ void nvs_sync_with_server(void* params)
 				if(err == ESP_OK && required_size > 0)
 				{
 				#ifdef DEBUG_NVS
-					print_log("NVS: CACHE KEY: %d | DATA: %s\n", i, data);
+					print_log("NVS: CACHE KEY: %d | DATA: %s\n\r", i, data);
 				#endif
 					String d(data);
 					if(d.length() > 1)
@@ -557,31 +557,31 @@ void nvs_sync_with_server(void* params)
 					{
 						vTaskDelay(5000/portTICK_RATE_MS);
 					#ifdef DEBUG_NVS
-						printf("\nNVS: 1 SEND KEY RESULT = %d\n", record_exist);
+						printf("NVS: 1 SEND KEY RESULT = %d\n\r", record_exist);
 					#endif
 						record_exist = gsm_send_http(full_data);
 						vTaskDelay(5000/portTICK_RATE_MS);
 						if(!record_exist)
 						{
 						#ifdef DEBUG_NVS
-							printf("\nNVS: 2 SEND KEY RESULT = %d\n", record_exist);
+							printf("NVS: 2 SEND KEY RESULT = %d\n\r", record_exist);
 						#endif
 							record_exist = gsm_send_http(full_data);
 							vTaskDelay(5000/portTICK_RATE_MS);
 							if(!record_exist)
 							{
 							#ifdef DEBUG_NVS
-								printf("\nNVS: 3 SEND KEY RESULT = %d\n", record_exist);
+								printf("NVS: 3 SEND KEY RESULT = %d\n\r", record_exist);
 							#endif
 								record_exist = gsm_send_http(full_data);
 							}
 						#ifdef DEBUG_NVS
-							printf("\nNVS: LAST GSM SEND KEY = %d; RESULT = %d\n", i, record_exist);
+							printf("NVS: LAST GSM SEND KEY = %d; RESULT = %d\n\r", i, record_exist);
 						#endif
 						}
 						err = nvs_erase_key(hnvs, key);
 					#ifdef DEBUG_NVS
-						print_log("\nNVS: KEY = %d DELETED\n", i);
+						print_log("NVS: KEY = %d DELETED\n\r", i);
 					#endif
 						record_exist = false;
 					}
@@ -590,7 +590,7 @@ void nvs_sync_with_server(void* params)
 						time_counter = 0;
 						err = nvs_set_i32(hnvs, "timestamp", get_time_stamp());
 					#ifdef DEBUG_NVS
-						printf("\nNVS: SAVE CURRENT TIMESTAMP = %d\n", get_time_stamp());
+						printf("NVS: SAVE CURRENT TIMESTAMP = %d\n\r", get_time_stamp());
 					#endif
 					}
 					time_counter++;
@@ -607,13 +607,13 @@ void nvs_sync_with_server(void* params)
 			vTaskDelay(3000/portTICK_RATE_MS);
 			gsm_send_signal(true);
 		#ifdef DEBUG_MAIN
-			print_log("\nPERIOD_REBOOT_GSM %d | last_time_stamp_sended %d\n", time_stamp_reboot_gsm, last_time_stamp_sended);
+			print_log("PERIOD_REBOOT_GSM %d | last_time_stamp_sended %d\n\r", time_stamp_reboot_gsm, last_time_stamp_sended);
 		#endif
 			if((last_time_stamp_sended - time_stamp_reboot_gsm) > PERIOD_REBOOT_GSM)
 			{
 				time_stamp_reboot_gsm = last_time_stamp_sended;
 			#ifdef DEBUG_MAIN
-				print_log("\nPERIOD_REBOOT_GSM %d\n", time_stamp_reboot_gsm);
+				print_log("PERIOD_REBOOT_GSM %d\n\r", time_stamp_reboot_gsm);
 			#endif
 				gsm_reboot();
 			}
@@ -628,8 +628,8 @@ void nvs_sync_with_server(void* params)
 			}
 		#endif
 		#ifdef DEBUG_NVS
-			print_log("NVS RAM left %d\n", esp_get_free_heap_size());
-			print_log("NVS task stack: %d\n", uxTaskGetStackHighWaterMark(NULL));
+			print_log("NVS RAM left %d\n\r", esp_get_free_heap_size());
+			print_log("NVS task stack: %d\n\r", uxTaskGetStackHighWaterMark(NULL));
 		#endif
 		}
 		free(key);
@@ -642,14 +642,14 @@ void nvs_sync_with_server(void* params)
 extern "C" void app_main()
 {
 #ifdef DEBUG_MAIN
-	print_log("\nFIRMWARE_VERSION = %s", FIRMWARE_VERSION);
+	print_log("FIRMWARE_VERSION = %s\n\r", FIRMWARE_VERSION);
 	#ifndef DEBUG_WROVER_LCD
 		printf("\n");
 	#endif
 #endif
 	generate_id();
 #ifdef DEBUG_MAIN
-	print_log("ID_CONTROLLER = %s", id_controller.c_str());
+	print_log("ID_CONTROLLER = %s\n\r", id_controller.c_str());
 	#ifndef DEBUG_WROVER_LCD
 		printf("\n");
 	#endif
@@ -679,13 +679,13 @@ extern "C" void app_main()
 	xTaskCreatePinnedToCore(&nvs_sync_with_server, "SyncTask", stack_size_sync, NULL, 0, NULL, 1);
 	xTaskCreatePinnedToCore(&cci_task, "CciUartTask", stack_size_cci, NULL, 32, NULL, 0);
 #ifdef DEBUG_MAIN
-	print_log("BOOT: FREE MEMORY MINIMUM = %d.", esp_get_minimum_free_heap_size());
+	print_log("BOOT: FREE MEMORY MINIMUM = %d.\n", esp_get_minimum_free_heap_size());
 	#ifndef DEBUG_WROVER_LCD
 		printf("\n");
 	#endif
-	print_log("BOOT: FREE MEMORY = %d.", esp_get_free_heap_size());
+	print_log("BOOT: FREE MEMORY = %d.\n", esp_get_free_heap_size());
 	#ifndef DEBUG_WROVER_LCD
-		printf("\n");
+		printf("\n\r");
 	#endif
 #endif
 }

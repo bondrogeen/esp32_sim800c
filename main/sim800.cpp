@@ -52,7 +52,7 @@ void sim800::begin()
 		_serial.setTimeout(SIM800_SERIAL_TIMEOUT);
 		_serial.begin(_serialSpeed, SERIAL_8N1, SIM800_RX, SIM800_TX);
 	#ifdef DEBUG_SIM800
-		printf("\n_serial.begin(%d, %X, %d, %d)\n", _serialSpeed, SERIAL_8N1, SIM800_RX, SIM800_TX);
+		printf("_serial.begin(%d, %X, %d, %d)\n\r", _serialSpeed, SERIAL_8N1, SIM800_RX, SIM800_TX);
 	#endif
 		serial_worked = true;
 	}
@@ -80,78 +80,70 @@ bool sim800::reset(bool flag_reboot)
 bool sim800::wakeup()
 {
 #ifdef DEBUG_AT
-	print_log("SIM800 wakeup\n");
+	print_log("SIM800 wakeup 1 \n\r");
 #endif
 	bool result = false;
 	// if(digitalRead(SIM800_PS) == LOW)
 	// {
-		if(!expect_AT_OK(F(""), 100))
+		if(!expect_AT_OK(F(""), 200))
 		{
 			bool flag_reboot = false;
-			if(!expect_AT_OK(F(""), 100))// check if the chip is already awake, otherwise start wakeup
+			if(!expect_AT_OK(F(""), 200))// check if the chip is already awake, otherwise start wakeup
 			{
 			#ifdef DEBUG_AT
-				print_log("SIM800 using PWRKEY wakeup procedure\n");
+				print_log("SIM800 using PWRKEY wakeup procedure\n\r");
 			#endif
 				// pinMode(SIM800_KEY, OUTPUT);
 				// pinMode(SIM800_PS, INPUT);
+    #ifdef DEBUG_AT
+					print_log("digitalRead(SIM800_PS) == %s\n\r", (digitalRead(SIM800_PS) == LOW) ? "LOW" : "HIGT");
+				#endif
 				if(digitalRead(SIM800_PS) == LOW)
 				{
-				#ifdef DEBUG_AT
-					print_log("digitalRead(SIM800_PS) == LOW\n");
-				#endif
+
 			#ifdef USE_POWER_SWITCH
 				#ifdef DEBUG_AT
-					print_log("=== SIM800_POWER BEFORE ===\n");
+					print_log("=== DC/DC POWER ON ===\n\r");
 				#endif
 					pinMode(SIM800_POWER, OUTPUT);
 					digitalWrite(SIM800_POWER, LOW);
-				#ifdef DEBUG_AT
-					print_log("=== SIM800_POWER AFTER ===\n");
-				#endif
 			#endif
 					int trying = 0;
 					do
 					{
 					#ifdef DEBUG_AT
-						print_log("TRYING SIM800 POWER ON\n");
+						print_log("TRYING SIM800 POWER ON\n\r");
 					#endif
 						digitalWrite(SIM800_KEY, HIGH);
 						vTaskDelay(3000 / portTICK_RATE_MS);
 						trying++;
 						if(trying > 10) break;
 					} while (digitalRead(SIM800_PS) == LOW);
+				}	else {
+				do {
+				digitalWrite(SIM800_KEY, LOW);
+				vTaskDelay(1100 / portTICK_RATE_MS);
+				digitalWrite(SIM800_KEY, HIGH);
+				vTaskDelay(3000 / portTICK_RATE_MS);
+     #ifdef DEBUG_AT
+						print_log("WTF\n\r");
+					#endif
+					} while (digitalRead(SIM800_PS) == LOW);
 				}
-				else
-				{
-				#ifdef DEBUG_AT
-					print_log("digitalRead(SIM800_PS) == HIGH\n");
-				#endif
-					do {
-					// digitalWrite(SIM800_KEY, LOW);
-					// vTaskDelay(35000 / portTICK_RATE_MS);
-					// digitalWrite(SIM800_KEY, HIGH);
-					digitalWrite(GPIO_NUM_21, LOW);
-					vTaskDelay(1100 / portTICK_RATE_MS);
-					digitalWrite(GPIO_NUM_21, HIGH);
-					vTaskDelay(1100 / portTICK_RATE_MS);
-					digitalWrite(GPIO_NUM_21, HIGH);
-					vTaskDelay(100 / portTICK_RATE_MS);
-					} while (digitalRead(SIM800_PS) == HIGH);
-				}
-				pinMode(SIM800_KEY, INPUT_PULLUP);// make pin unused (do not leak)
+//				pinMode(SIM800_KEY, INPUT_PULLUP);// make pin unused (do not leak)
+    digitalWrite(SIM800_KEY, LOW);
 			#ifdef DEBUG_AT
-				print_log("SIM800 ok\n");
+				print_log("SIM800 ok\n\r");
 			#endif
 			}
 			else
 			{
 			#ifdef DEBUG_AT
-				print_log("SIM800 already awake\n");
+				print_log("SIM800 already awake\n\r");
 			#endif
 			}
 		#ifdef DEBUG_AT
-			print_log("SIM800 using PWRKEY wakeup procedure END\n");
+			print_log("SIM800 using PWRKEY wakeup procedure END\n\r");
 		#endif
 			result = reset(flag_reboot);
 		}
@@ -159,7 +151,7 @@ bool sim800::wakeup()
 			result = true;
 	// }
 #ifdef DEBUG_AT
-	print_log("SIM800 using PWRKEY wakeup procedure END\n");
+	print_log("SIM800 using PWRKEY wakeup procedure END\n\r");
 #endif
 	return result;
 }
@@ -167,11 +159,22 @@ bool sim800::wakeup()
 bool sim800::shutdown(bool hard)
 {
 #ifdef DEBUG_AT
-	print_log("SIM800 shutdown\n");
+	print_log("SIM800 shutdown\n\r");
 #endif
 	if(hard)
 	{
 	#ifdef USE_POWER_SWITCH
+  #ifdef DEBUG_AT
+			print_log("TRYING SIM800 POWER OFF\n\r");
+		#endif
+  pinMode(SIM800_KEY, OUTPUT);
+		digitalWrite(SIM800_KEY, HIGH);
+		vTaskDelay(1100 / portTICK_RATE_MS);
+		digitalWrite(SIM800_KEY, LOW);
+  vTaskDelay(3000 / portTICK_RATE_MS);
+  #ifdef DEBUG_AT
+			print_log("DC/DC POWER OFF\n\r");
+		#endif
 		pinMode(SIM800_POWER, OUTPUT);
 		digitalWrite(SIM800_POWER, HIGH);
 		vTaskDelay(5000 / portTICK_RATE_MS);
@@ -193,7 +196,7 @@ bool sim800::shutdown(bool hard)
 			if (digitalRead(SIM800_PS) == HIGH)
 			{
 			#ifdef DEBUG_AT
-				print_log("SIM800 shutdown using PWRKEY\n");
+				print_log("SIM800 shutdown using PWRKEY\n\r");
 			#endif
 				pinMode(SIM800_KEY, OUTPUT);
 				digitalWrite(SIM800_KEY, LOW);
@@ -205,7 +208,7 @@ bool sim800::shutdown(bool hard)
 		}
 	}
 #ifdef DEBUG_AT
-	print_log("SIM800 shutdown ok\n");
+	print_log("SIM800 shutdown ok\n\r");
 #endif
 	return true;
 }
@@ -274,7 +277,7 @@ bool sim800::location(char *&lat, char *&lon, char *&date, char *&time_value)
 bool sim800::registerNetwork(uint16_t timeout)
 {
 #ifdef DEBUG_AT
-	print_log("SIM800 waiting for network registration\n");
+	print_log("SIM800 waiting for network registration\n\r");
 #endif
 	expect_AT_OK(F(""));
 	while (timeout -= 1000)
@@ -699,7 +702,7 @@ size_t sim800::get_content_length(int connection)
 	memset(buffer, 0, confirmed);
 	sz = _serial.readBytes(buffer, confirmed);
 #ifdef DEBUG_SIM800
-	printf("===HTTP HEADERS %d===\n%s\n============\n", sz, buffer);
+	printf("===HTTP HEADERS %d===\n\r%s\n\r============\n\r", sz, buffer);
 #endif
 	free(buffer);
 	return a1.substring(0, a1.indexOf('\r')).toInt();
@@ -959,7 +962,7 @@ bool sim800::is_urc(const char *line, size_t len)
 bool sim800::check_sim_card()
 {
 	#ifdef DEBUG_URC
-		print_log("SIM800 check SIM card inserted...\n");
+		print_log("SIM800 check SIM card inserted...\n\r");
 	#endif
 	println(F("AT+CSMINS?"));
 	return expect(F("+CSMINS: 0,1"), 3000);
@@ -991,7 +994,7 @@ void sim800::set_operator()
 		if(expect_scan(F("%s"), operator_name, 3000))
 		{
 		#ifdef DEBUG_SIM800
-			print_log("\n SIM800: AT RESPONSE: [%s]", operator_name);
+			print_log("SIM800: AT RESPONSE: [%s]\n\r", operator_name);
 		#endif
 			for(int i = 0; i < 4; ++i)
 			{
@@ -1031,7 +1034,13 @@ bool sim800::gsm_init()
 	if(!check_sim_card())
 	{
 		vTaskDelay(3000 / portTICK_RATE_MS);
-		while(!check_sim_card()) vTaskDelay(60000 / portTICK_RATE_MS);
+  while (!check_sim_card())
+   {
+   #ifdef DEBUG_SIM800
+   printf("while Sim card check\n\r");
+   #endif
+   vTaskDelay(5000 / portTICK_RATE_MS);
+   }
 	}
 	gsm_rssi = get_signal(gsm_ber);
 	while(gsm_rssi < 1 || gsm_rssi > 98)
@@ -1073,8 +1082,8 @@ bool sim800::gsm_init()
 void sim800::update_esp_http(const char *host, unsigned short int port, String url_update)
 {//ONLY 14 kbytes
 #ifdef DEBUG_SIM800
-	printf("\n");
-	print_log("SIM800: START UPDATE %s\n", url_update.c_str());
+	printf("\n\r");
+	print_log("SIM800: START UPDATE %s\n\r", url_update.c_str());
 #endif
 	if(connect(host, port, 15000))
 	{
@@ -1095,10 +1104,10 @@ void sim800::update_esp_http(const char *host, unsigned short int port, String u
 				const esp_partition_t *running = esp_ota_get_running_partition();
 				if(configured != running)
 				{
-					print_log("Configured OTA boot partition at offset 0x%08x, but running from offset 0x%08x\n", configured->address, running->address);
-					print_log("(This can happen if either the OTA boot data or preferred boot image become corrupted somehow.)\n");
+					print_log("Configured OTA boot partition at offset 0x%08x, but running from offset 0x%08x\n\r", configured->address, running->address);
+					print_log("(This can happen if either the OTA boot data or preferred boot image become corrupted somehow.)\n\r");
 				}
-				print_log("Running partition type %d subtype %d (offset 0x%08x)\n", running->type, running->subtype, running->address);
+				print_log("Running partition type %d subtype %d (offset 0x%08x)\n\r", running->type, running->subtype, running->address);
 			#endif
 				update_partition = esp_ota_get_next_update_partition(NULL);
 				assert(update_partition != NULL);
@@ -1158,13 +1167,13 @@ void sim800::update_esp_http(const char *host, unsigned short int port, String u
 		}
 	#ifdef DEBUG_SIM800
 		else
-			print_log("SIM800: STATUS CONNECTION FAILED!\n");
+			print_log("SIM800: STATUS CONNECTION FAILED!\n\r");
 	#endif
 		disconnect();
 	}
 #ifdef DEBUG_SIM800
 	else
-		print_log("SIM800: CONNECT FAILED!\n");
+		print_log("SIM800: CONNECT FAILED!\n\r");
 #endif
 }
 
@@ -1203,14 +1212,14 @@ bool sim800::init_ftp(const char* host, int port, const char* user, const char* 
 							if(expect_AT_OK(F(ftp_path.c_str()), 1000))
 							{
 							#ifdef DEBUG_SIM800
-								printf("\nGSM: FTP INIT OK\n");
+								printf("GSM: FTP INIT OK\n\r");
 							#endif
 								result = true;
 							}
 						#ifdef DEBUG_SIM800
 							else
 							{
-								printf("\nGSM: FTP INIT ERROR\n");
+								printf("GSM: FTP INIT ERROR\n\r");
 							}
 						#endif
 						}
