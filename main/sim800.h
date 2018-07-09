@@ -62,6 +62,9 @@ public:
 	bool reset(bool flag_reboot = false);
 	bool shutdown(bool hard = false);
 	bool wakeup();
+ bool checkOK();
+ void init_settings();
+ bool reconnect();
 	bool registerNetwork(uint16_t timeout = SIM800_CMD_TIMEOUT);
 	bool enableGPRS(uint16_t timeout = SIM800_CMD_TIMEOUT);
 	bool disableGPRS();
@@ -121,6 +124,7 @@ public:
 
 protected:
 	bool serial_worked = false;
+	bool init_one = false;
 	const char* status_description(uint16_t status);
 	const uint32_t _serialSpeed = SIM800_BAUD;
 	const __FlashStringHelper *_apn;

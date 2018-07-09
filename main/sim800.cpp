@@ -58,6 +58,23 @@ void sim800::begin()
 	}
 }
 
+void sim800::init_settings(){
+ if(!init_one){
+  expect_AT_OK(F("E0")); //disable echo
+  expect_AT_OK(F("V1")); //disable echo
+  expect_AT_OK(F("+IPR?"));//check uart speed (0 = auto)
+  expect_AT_OK(F("+IPR=115200"));//set uart speed 115200
+  expect_AT_OK(F("+IPR?"));//check uart speed (0 = auto)
+  expect_AT_OK(F("+CSCLK=0"));//disable sleep mode
+  expect_AT_OK(F("+CNMI=0,0,0,0,0"));//disable incoming SMS
+  expect_AT_OK(F("+GSMBUSY=1"));//disable incoming calls
+  expect_AT_OK(F("+CBC"), 2000);//power monitor
+//  expect_AT_OK(F("+CADC?"), 5000);//acp monitor
+  vTaskDelay(1000 / portTICK_RATE_MS);
+  init_one = true;
+ }
+}
+
 bool sim800::reset(bool flag_reboot)
 {
 	bool ok = false;
@@ -66,7 +83,8 @@ bool sim800::reset(bool flag_reboot)
 		ok = expect_AT_OK(F("+CFUN=1,1"));
 		vTaskDelay(5000 / portTICK_RATE_MS);
 	}
-	ok = expect_AT_OK(F(""));if(!ok)expect_AT_OK(F(""));
+	ok = expect_AT_OK(F(""));
+ if(!ok)expect_AT_OK(F(""));
 	println(F("ATZ"));
 	vTaskDelay(1000 / portTICK_RATE_MS);
 	ok = expect_OK(5000);//if(!ok){println(F("ATZ"));vTaskDelay(1000 / portTICK_RATE_MS);expect_OK(5000);}
@@ -77,87 +95,122 @@ bool sim800::reset(bool flag_reboot)
 	return ok;
 }
 
+bool sim800::checkOK()
+{
+ int trying = 0;
+ bool result = false;
+ init_settings();
+   do
+   {
+ 	 #ifdef DEBUG_AT
+		 	print_log("checkOK\n\r");
+		 #endif
+   trying++;
+   if(trying > 10) break;
+   if(expect_OK()){
+    result = true;
+   }
+   } while (!result);
+ if(!result)reset(true);
+ return result;
+}
+
 bool sim800::wakeup()
 {
-#ifdef DEBUG_AT
-	print_log("SIM800 wakeup 1 \n\r");
-#endif
-	bool result = false;
-	// if(digitalRead(SIM800_PS) == LOW)
-	// {
-		if(!expect_AT_OK(F(""), 200))
-		{
-			bool flag_reboot = false;
-			if(!expect_AT_OK(F(""), 200))// check if the chip is already awake, otherwise start wakeup
-			{
-			#ifdef DEBUG_AT
-				print_log("SIM800 using PWRKEY wakeup procedure\n\r");
-			#endif
-				// pinMode(SIM800_KEY, OUTPUT);
-				// pinMode(SIM800_PS, INPUT);
-    #ifdef DEBUG_AT
-					print_log("digitalRead(SIM800_PS) == %s\n\r", (digitalRead(SIM800_PS) == LOW) ? "LOW" : "HIGT");
-				#endif
-				if(digitalRead(SIM800_PS) == LOW)
-				{
+ #ifdef DEBUG_AT
+ 	print_log("SIM800 wakeup 1 \n\r");
+ #endif
+ bool result = false;
+ #ifdef DEBUG_AT
+ 	print_log("digitalRead(SIM800_PS) == %s\n\r", (digitalRead(SIM800_PS) == LOW) ? "LOW" : "HIGT");
+ #endif
+ if(digitalRead(SIM800_PS) == HIGH)
+  {
+  #ifdef USE_POWER_SWITCH
+  #ifdef DEBUG_AT
+  print_log("=== DC/DC POWER ON ===\n\r");
+	 #endif
+		pinMode(SIM800_POWER, OUTPUT);
+		digitalWrite(SIM800_POWER, LOW);
+  vTaskDelay(1000 / portTICK_RATE_MS);
+		#endif
 
-			#ifdef USE_POWER_SWITCH
+  int trying = 0;
+  do
+   {
+ 	 #ifdef DEBUG_AT
+		 	print_log("TRYING SIM800 POWER ON\n\r");
+		 #endif
+   digitalWrite(SIM800_KEY, HIGH);
+   vTaskDelay(3000 / portTICK_RATE_MS);
+   trying++;
+   if(trying > 10) break;
+   } while (digitalRead(SIM800_PS) == HIGH);
+  //				pinMode(SIM800_KEY, INPUT_PULLUP);// make pin unused (do not leak)
+  digitalWrite(SIM800_KEY, LOW);
+  #ifdef DEBUG_AT
+		 print_log("WAIT LOAD MODEM...\n\r");
+		#endif
+  vTaskDelay(10000 / portTICK_RATE_MS);
+  result = checkOK();
+  }
+ else
+  {
+  result = checkOK();
+ }
+	return result;
+}
+
+bool sim800::reconnect()
+{
+ init_one = false;
+ #ifdef DEBUG_AT
+ 	print_log("SIM800 wakeup 1 \n\r");
+ #endif
+ bool result = false;
+ #ifdef DEBUG_AT
+ 	print_log("digitalRead(SIM800_PS) == %s\n\r", (digitalRead(SIM800_PS) == LOW) ? "LOW" : "HIGT");
+ #endif
+ if(digitalRead(SIM800_PS) == HIGH)
+  {
+  #ifdef USE_POWER_SWITCH
 				#ifdef DEBUG_AT
 					print_log("=== DC/DC POWER ON ===\n\r");
 				#endif
 					pinMode(SIM800_POWER, OUTPUT);
 					digitalWrite(SIM800_POWER, LOW);
+		#endif
+
+  int trying = 0;
+  do
+   {
+ 	 #ifdef DEBUG_AT
+		 	print_log("TRYING SIM800 POWER ON\n\r");
+		 #endif
+   digitalWrite(SIM800_KEY, HIGH);
+   vTaskDelay(3000 / portTICK_RATE_MS);
+   trying++;
+   if(trying > 10) break;
+   } while (digitalRead(SIM800_PS) == HIGH);
+  }	else {
+  do {
+   digitalWrite(SIM800_KEY, LOW);
+			vTaskDelay(1100 / portTICK_RATE_MS);
+			digitalWrite(SIM800_KEY, HIGH);
+			vTaskDelay(3000 / portTICK_RATE_MS);
+   #ifdef DEBUG_AT
+				print_log("WTF\n\r");
 			#endif
-					int trying = 0;
-					do
-					{
-					#ifdef DEBUG_AT
-						print_log("TRYING SIM800 POWER ON\n\r");
-					#endif
-						digitalWrite(SIM800_KEY, HIGH);
-						vTaskDelay(3000 / portTICK_RATE_MS);
-						trying++;
-						if(trying > 10) break;
-					} while (digitalRead(SIM800_PS) == LOW);
-				}	else {
-				do {
-				digitalWrite(SIM800_KEY, LOW);
-				vTaskDelay(1100 / portTICK_RATE_MS);
-				digitalWrite(SIM800_KEY, HIGH);
-				vTaskDelay(3000 / portTICK_RATE_MS);
-     #ifdef DEBUG_AT
-						print_log("WTF\n\r");
-					#endif
-					} while (digitalRead(SIM800_PS) == LOW);
-				}
+			} while (digitalRead(SIM800_PS) == HIGH);
+  }
 //				pinMode(SIM800_KEY, INPUT_PULLUP);// make pin unused (do not leak)
     digitalWrite(SIM800_KEY, LOW);
-			#ifdef DEBUG_AT
-				print_log("SIM800 ok\n\r");
-			#endif
-			}
-			else
-			{
-			#ifdef DEBUG_AT
-				print_log("SIM800 already awake\n\r");
-			#endif
-			}
-		#ifdef DEBUG_AT
-			print_log("SIM800 using PWRKEY wakeup procedure END\n\r");
-		#endif
-			result = reset(flag_reboot);
-		}
-		else
-			result = true;
-	// }
-#ifdef DEBUG_AT
-	print_log("SIM800 using PWRKEY wakeup procedure END\n\r");
-#endif
 	return result;
 }
 
 bool sim800::shutdown(bool hard)
 {
+ init_one = false;
 #ifdef DEBUG_AT
 	print_log("SIM800 shutdown\n\r");
 #endif
@@ -1022,15 +1075,7 @@ bool sim800::gsm_init()
 	{
 		vTaskDelay(3000 / portTICK_RATE_MS);
 	}
-	expect_AT_OK(F(""));
-	expect_AT_OK(F("+IPR?"));//check uart speed (0 = auto)
-	expect_AT_OK(F("+IPR=115200"));//set uart speed 115200
-	expect_AT_OK(F("+IPR?"));//check uart speed (0 = auto)
-	expect_AT_OK(F("+CSCLK=0"));//disable sleep mode
-	expect_AT_OK(F("+CNMI=0,0,0,0,0"));//disable incoming SMS
-	expect_AT_OK(F("+GSMBUSY=1"));//disable incoming calls
-	expect_AT_OK(F("+CBC"), 2000);//power monitor
-	expect_AT_OK(F("+CADC?"), 2000);//acp monitor
+
 	if(!check_sim_card())
 	{
 		vTaskDelay(3000 / portTICK_RATE_MS);
@@ -1058,13 +1103,14 @@ bool sim800::gsm_init()
 	expect(F("+CGATT: "), 3000);
 	set_operator();
 	println(F("AT+SAPBR=1,1"));
+ vTaskDelay(1000 / portTICK_RATE_MS);
 	expect_OK();
 	println(F("AT+SAPBR=2,1"));
 	vTaskDelay(2000 / portTICK_RATE_MS);
 	bool result = expect_scan(F("+SAPBR: 1,1,\"%d.%d.%d.%d\""), &ip0, &ip1, &ip2, &ip3);
 #ifdef DEBUG_SIM800
 	printf("\n");
-	print_log("SIM800: CONNECT: %s\n", result ? "TRUE" : "FALSE");
+	print_log("SIM800: CONNECT: %s\n\r", result ? "TRUE" : "FALSE");
 #endif
 	if(ip0==0 && ip1==0 && ip2==0 && ip3==0){println(F("AT+SAPBR=2,1"));vTaskDelay(2000/portTICK_RATE_MS);result=expect_OK();}
 	// while(!result)
