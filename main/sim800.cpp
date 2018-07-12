@@ -46,7 +46,11 @@ void sim800::begin()
 {
 	if(!serial_worked)
 	{
+  pinMode(SIM800_POWER, OUTPUT);
 		pinMode(SIM800_KEY, OUTPUT);
+  digitalWrite(SIM800_KEY, LOW);
+  pinMode(GPIO_NUM_25, OUTPUT);
+  digitalWrite(GPIO_NUM_25, HIGH);
 		pinMode(SIM800_PS, INPUT);
 		// _serial.setTimeout(50);
 		_serial.setTimeout(SIM800_SERIAL_TIMEOUT);
@@ -58,6 +62,10 @@ void sim800::begin()
 	}
 }
 
+void sim800::check()
+{
+ digitalWrite(GPIO_NUM_25, !digitalRead(GPIO_NUM_25));
+}
 void sim800::init_settings(){
  if(!init_one){
   expect_AT_OK(F("E0")); //disable echo
@@ -81,17 +89,20 @@ bool sim800::reset(bool flag_reboot)
 	if(flag_reboot)
 	{
 		ok = expect_AT_OK(F("+CFUN=1,1"));
-		vTaskDelay(5000 / portTICK_RATE_MS);
+		vTaskDelay(60000 / portTICK_RATE_MS);
 	}
-	ok = expect_AT_OK(F(""));
- if(!ok)expect_AT_OK(F(""));
-	println(F("ATZ"));
-	vTaskDelay(1000 / portTICK_RATE_MS);
-	ok = expect_OK(5000);//if(!ok){println(F("ATZ"));vTaskDelay(1000 / portTICK_RATE_MS);expect_OK(5000);}
-	println(F("ATE0"));
-	vTaskDelay(1000 / portTICK_RATE_MS);
-	ok = expect_OK(5000);if(!ok){println(F("ATE0"));vTaskDelay(1000 / portTICK_RATE_MS);ok = expect_OK(5000);}
-	ok = expect_AT_OK(F("+CFUN=1"));if(!ok)expect_AT_OK(F("+CFUN=1"));
+ init_one = false;
+ init_settings();
+
+//	ok = expect_AT_OK(F(""));
+// if(!ok)expect_AT_OK(F(""));
+//	println(F("ATZ"));
+//	vTaskDelay(1000 / portTICK_RATE_MS);
+//	ok = expect_OK(5000);//if(!ok){println(F("ATZ"));vTaskDelay(1000 / portTICK_RATE_MS);expect_OK(5000);}
+//	println(F("ATE0"));
+//	vTaskDelay(1000 / portTICK_RATE_MS);
+//	ok = expect_OK(5000);if(!ok){println(F("ATE0"));vTaskDelay(1000 / portTICK_RATE_MS);ok = expect_OK(5000);}
+//	ok = expect_AT_OK(F("+CFUN=1"));if(!ok)expect_AT_OK(F("+CFUN=1"));
 	return ok;
 }
 
@@ -111,7 +122,9 @@ bool sim800::checkOK()
     result = true;
    }
    } while (!result);
- if(!result)reset(true);
+ if(!result){
+  shutdown(false);
+ }
  return result;
 }
 
@@ -122,17 +135,16 @@ bool sim800::wakeup()
  #endif
  bool result = false;
  #ifdef DEBUG_AT
- 	print_log("digitalRead(SIM800_PS) == %s\n\r", (digitalRead(SIM800_PS) == LOW) ? "LOW" : "HIGT");
+ 	print_log("digitalRead(SIM800_PS) == %s\n\r", (digitalRead(SIM800_PS) == LOW) ? "LOW" : "HIGH");
  #endif
  if(digitalRead(SIM800_PS) == HIGH)
   {
   #ifdef USE_POWER_SWITCH
-  #ifdef DEBUG_AT
-  print_log("=== DC/DC POWER ON ===\n\r");
-	 #endif
-		pinMode(SIM800_POWER, OUTPUT);
-		digitalWrite(SIM800_POWER, LOW);
-  vTaskDelay(1000 / portTICK_RATE_MS);
+   #ifdef DEBUG_AT
+    print_log("=== DC/DC POWER ON ===\n\r");
+	  #endif
+		 digitalWrite(SIM800_POWER, LOW);
+   vTaskDelay(1000 / portTICK_RATE_MS);
 		#endif
 
   int trying = 0;
@@ -161,53 +173,6 @@ bool sim800::wakeup()
 	return result;
 }
 
-bool sim800::reconnect()
-{
- init_one = false;
- #ifdef DEBUG_AT
- 	print_log("SIM800 wakeup 1 \n\r");
- #endif
- bool result = false;
- #ifdef DEBUG_AT
- 	print_log("digitalRead(SIM800_PS) == %s\n\r", (digitalRead(SIM800_PS) == LOW) ? "LOW" : "HIGT");
- #endif
- if(digitalRead(SIM800_PS) == HIGH)
-  {
-  #ifdef USE_POWER_SWITCH
-				#ifdef DEBUG_AT
-					print_log("=== DC/DC POWER ON ===\n\r");
-				#endif
-					pinMode(SIM800_POWER, OUTPUT);
-					digitalWrite(SIM800_POWER, LOW);
-		#endif
-
-  int trying = 0;
-  do
-   {
- 	 #ifdef DEBUG_AT
-		 	print_log("TRYING SIM800 POWER ON\n\r");
-		 #endif
-   digitalWrite(SIM800_KEY, HIGH);
-   vTaskDelay(3000 / portTICK_RATE_MS);
-   trying++;
-   if(trying > 10) break;
-   } while (digitalRead(SIM800_PS) == HIGH);
-  }	else {
-  do {
-   digitalWrite(SIM800_KEY, LOW);
-			vTaskDelay(1100 / portTICK_RATE_MS);
-			digitalWrite(SIM800_KEY, HIGH);
-			vTaskDelay(3000 / portTICK_RATE_MS);
-   #ifdef DEBUG_AT
-				print_log("WTF\n\r");
-			#endif
-			} while (digitalRead(SIM800_PS) == HIGH);
-  }
-//				pinMode(SIM800_KEY, INPUT_PULLUP);// make pin unused (do not leak)
-    digitalWrite(SIM800_KEY, LOW);
-	return result;
-}
-
 bool sim800::shutdown(bool hard)
 {
  init_one = false;
@@ -217,51 +182,50 @@ bool sim800::shutdown(bool hard)
 	if(hard)
 	{
 	#ifdef USE_POWER_SWITCH
+
   #ifdef DEBUG_AT
-			print_log("TRYING SIM800 POWER OFF\n\r");
-		#endif
-  pinMode(SIM800_KEY, OUTPUT);
+  print_log("TRYING SIM800 POWER OFF\n\r");
+  #endif
+
 		digitalWrite(SIM800_KEY, HIGH);
-		vTaskDelay(1100 / portTICK_RATE_MS);
+		vTaskDelay(1500 / portTICK_RATE_MS);
 		digitalWrite(SIM800_KEY, LOW);
   vTaskDelay(3000 / portTICK_RATE_MS);
+
   #ifdef DEBUG_AT
-			print_log("DC/DC POWER OFF\n\r");
-		#endif
-		pinMode(SIM800_POWER, OUTPUT);
+  print_log("DC/DC POWER OFF\n\r");
+  #endif
+
 		digitalWrite(SIM800_POWER, HIGH);
 		vTaskDelay(5000 / portTICK_RATE_MS);
 	#else
-		pinMode(SIM800_KEY, OUTPUT);
+		digitalWrite(SIM800_KEY, HIGH);
+		vTaskDelay(1500 / portTICK_RATE_MS);
 		digitalWrite(SIM800_KEY, LOW);
-		vTaskDelay(1100 / portTICK_RATE_MS);
-		digitalWrite(SIM800_KEY, HIGH);
-		vTaskDelay(1100 / portTICK_RATE_MS);
-		digitalWrite(SIM800_KEY, HIGH);
 	#endif
 	}
 	else
 	{
 		bool reboot = expect_AT_OK(F("+CFUN=1,1"));
-		if(reboot) vTaskDelay(5000 / portTICK_RATE_MS);
-		else
+		if(reboot) {
+   vTaskDelay(5000 / portTICK_RATE_MS);
+   }
+  else
 		{
-			if (digitalRead(SIM800_PS) == HIGH)
+			if (digitalRead(SIM800_PS) == LOW)
 			{
 			#ifdef DEBUG_AT
-				print_log("SIM800 shutdown using PWRKEY\n\r");
-			#endif
-				pinMode(SIM800_KEY, OUTPUT);
+    print_log("SIM800 shutdown using PWRKEY\n\r");
+   #endif
+
+				digitalWrite(SIM800_KEY, HIGH);
+				vTaskDelay(1500 / portTICK_RATE_MS);
 				digitalWrite(SIM800_KEY, LOW);
-				vTaskDelay(1100 / portTICK_RATE_MS);
-				digitalWrite(SIM800_KEY, HIGH);
-				vTaskDelay(1100 / portTICK_RATE_MS);
-				digitalWrite(SIM800_KEY, HIGH);
 			}
 		}
 	}
 #ifdef DEBUG_AT
-	print_log("SIM800 shutdown ok\n\r");
+ print_log("SIM800 shutdown ok\n\r");
 #endif
 	return true;
 }
@@ -310,7 +274,7 @@ bool sim800::battery(uint16_t &bat_status, uint16_t &bat_percent, uint16_t &bat_
 
 bool sim800::location(char *&lat, char *&lon, char *&date, char *&time_value)
 {
-	uint16_t loc_status;
+	uint16_t loc_status = 1;
 	char reply[64];
 	println(F("AT+CIPGSMLOC=1,1"));
 	vTaskDelay(3000 / portTICK_RATE_MS);
@@ -1030,8 +994,8 @@ int sim800::get_signal(int& ber)
 	vTaskDelay(3000 / portTICK_RATE_MS);
 	expect_scan(F("+CSQ: %2d"), (void*)&rssi, (void*)ber);
 #ifdef DEBUG_URC
-	print_log("SIM800 RSSI ");DEBUG(rssi);PRINTLN(" dBm");
-	print_log("SIM800 BER ");DEBUG(ber);PRINTLN(" %");
+	print_log("SIM800 RSSI \n\r");DEBUG(rssi);PRINTLN(" dBm");
+	print_log("SIM800 BER \n\r");DEBUG(ber);PRINTLN(" %");
 #endif
 	return rssi;
 }
@@ -1067,9 +1031,35 @@ void sim800::set_operator()
 	}
 }
 
+bool sim800::conn()
+{
+ bool result = false;
+ uint16_t ip0=0, ip1=0, ip2=0, ip3=0;
+	set_operator();
+	println(F("AT+SAPBR=1,1"));
+ vTaskDelay(1000 / portTICK_RATE_MS);
+	expect_OK();
+	println(F("AT+SAPBR=2,1"));
+	vTaskDelay(2000 / portTICK_RATE_MS);
+	result = expect_scan(F("+SAPBR: 1,1,\"%d.%d.%d.%d\""), &ip0, &ip1, &ip2, &ip3);
+#ifdef DEBUG_SIM800
+	printf("\n");
+	print_log("SIM800: CONNECT: %s\n\r", result ? "TRUE" : "FALSE");
+#endif
+	if(ip0==0 && ip1==0 && ip2==0 && ip3==0){println(F("AT+SAPBR=2,1"));vTaskDelay(2000/portTICK_RATE_MS);result=expect_OK();}
+ return result;
+}
+
+bool sim800::disconn()
+{
+	println(F("AT+SAPBR=0,1"));
+ vTaskDelay(1000 / portTICK_RATE_MS);
+ return expect_OK();
+}
+
 bool sim800::gsm_init()
 {
-	uint16_t ip0=0, ip1=0, ip2=0, ip3=0;
+ bool result = false;
 	begin();
 	while(!wakeup())
 	{
@@ -1099,29 +1089,15 @@ bool sim800::gsm_init()
 		shutdown();
 		wakeup();
 	}
-	println(F("AT+CGATT?"));
-	expect(F("+CGATT: "), 3000);
-	set_operator();
-	println(F("AT+SAPBR=1,1"));
- vTaskDelay(1000 / portTICK_RATE_MS);
-	expect_OK();
-	println(F("AT+SAPBR=2,1"));
-	vTaskDelay(2000 / portTICK_RATE_MS);
-	bool result = expect_scan(F("+SAPBR: 1,1,\"%d.%d.%d.%d\""), &ip0, &ip1, &ip2, &ip3);
-#ifdef DEBUG_SIM800
-	printf("\n");
-	print_log("SIM800: CONNECT: %s\n\r", result ? "TRUE" : "FALSE");
-#endif
-	if(ip0==0 && ip1==0 && ip2==0 && ip3==0){println(F("AT+SAPBR=2,1"));vTaskDelay(2000/portTICK_RATE_MS);result=expect_OK();}
-	// while(!result)
-	// {
-		// vTaskDelay(5000 / portTICK_RATE_MS);
-		// result = expect_scan(F("+SAPBR: 1,1,\"%d.%d.%d.%d\""), &ip0, &ip1, &ip2, &ip3);
-	// #ifdef DEBUG_SIM800
-		// printf("\n!!! SIM800: CONNECT: %s", result ? "TRUE" : "FALSE");
-	// #endif
-	// }
-	// if(ip0==0 && ip1==0 && ip2==0 && ip3==0){println(F("AT+SAPBR=2,1"));vTaskDelay(5000/portTICK_RATE_MS);result=expect_OK();}
+
+ println(F("AT+CGATT?"));
+ if(expect(F("+CGATT: 0"), 3000)) //проверка регистрации в GPRS сети
+ {
+  shutdown(false);
+  return result;
+ }
+ result = conn();
+
 	return result;
 }
 

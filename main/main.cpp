@@ -180,6 +180,7 @@ static void cci_task(void*)
 
 time_t check_timestamp_from_http()
 {
+ modem.check();
 	time_t time_array[]  = {gsm_get_time_from_http(), get_time_stamp(), default_current_time_stamp, last_time_stamp_sended, last_time_stamp};
 	last_time_stamp_sended = get_max_time_stamp(time_array);
 #ifdef DEBUG_MAIN
@@ -518,7 +519,7 @@ void nvs_sync_with_server(void* params)
 			#ifdef DEBUG_NVS
 				print_log("NVS: LOOP INDEX: %d\n\r", i);
 			#endif
-				while(xSemaphoreTakeFromISR(xSemaphore, NULL) != pdPASS){vTaskDelay(2000/portTICK_RATE_MS);}
+//				while(xSemaphoreTakeFromISR(xSemaphore, NULL) != pdPASS){vTaskDelay(2000/portTICK_RATE_MS);}
 				// printf("\nCLEAR DATA %s\n", data);
 				memset(data, 0, CCI_BUF_SIZE);
 				vTaskDelay(100/portTICK_RATE_MS);
@@ -642,7 +643,7 @@ void nvs_sync_with_server(void* params)
 extern "C" void app_main()
 {
 #ifdef DEBUG_MAIN
-	print_log("FIRMWARE_VERSION = %s\n\r", FIRMWARE_VERSION);
+	print_log("\n\rFIRMWARE_VERSION = %s\n\r", FIRMWARE_VERSION);
 	#ifndef DEBUG_WROVER_LCD
 		printf("\n");
 	#endif

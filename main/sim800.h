@@ -63,6 +63,9 @@ public:
 	bool shutdown(bool hard = false);
 	bool wakeup();
  bool checkOK();
+ bool conn();
+ void check();
+ bool disconn();
  void init_settings();
  bool reconnect();
 	bool registerNetwork(uint16_t timeout = SIM800_CMD_TIMEOUT);
