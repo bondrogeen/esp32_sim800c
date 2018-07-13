@@ -55,8 +55,8 @@ public:
 	int gsm_ber = 0;
 	uint8_t urc_status = 0xff;
 
-// bool STATUS = HIGH; // normal
- bool STATUS = LOW;   // signal inversion "status"
+ bool STATUS = HIGH; // inversion signal "status"
+// bool STATUS = LOW;   // normal signal "status"
 
 	sim800();
 	void begin();
