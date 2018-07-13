@@ -137,7 +137,7 @@ bool sim800::wakeup()
  #ifdef DEBUG_AT
  	print_log("digitalRead(SIM800_PS) == %s\n\r", (digitalRead(SIM800_PS) == LOW) ? "LOW" : "HIGH");
  #endif
- if(digitalRead(SIM800_PS) == HIGH)
+ if(digitalRead(SIM800_PS) == STATUS)
   {
   #ifdef USE_POWER_SWITCH
    #ifdef DEBUG_AT
@@ -157,7 +157,7 @@ bool sim800::wakeup()
    vTaskDelay(3000 / portTICK_RATE_MS);
    trying++;
    if(trying > 10) break;
-   } while (digitalRead(SIM800_PS) == HIGH);
+   } while (digitalRead(SIM800_PS) == STATUS);
   //				pinMode(SIM800_KEY, INPUT_PULLUP);// make pin unused (do not leak)
   digitalWrite(SIM800_KEY, LOW);
   #ifdef DEBUG_AT
@@ -212,7 +212,7 @@ bool sim800::shutdown(bool hard)
    }
   else
 		{
-			if (digitalRead(SIM800_PS) == LOW)
+			if (digitalRead(SIM800_PS) == !STATUS)
 			{
 			#ifdef DEBUG_AT
     print_log("SIM800 shutdown using PWRKEY\n\r");

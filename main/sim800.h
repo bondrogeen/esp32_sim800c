@@ -55,6 +55,9 @@ public:
 	int gsm_ber = 0;
 	uint8_t urc_status = 0xff;
 
+// bool STATUS = HIGH; // normal
+ bool STATUS = LOW;   // signal inversion "status"
+
 	sim800();
 	void begin();
 	void setAPN(const __FlashStringHelper *apn, const __FlashStringHelper *user, const __FlashStringHelper *pass);
