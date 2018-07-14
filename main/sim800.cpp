@@ -208,7 +208,11 @@ bool sim800::shutdown(bool hard)
 	{
 		bool reboot = expect_AT_OK(F("+CFUN=1,1"));
 		if(reboot) {
+   #ifdef DEBUG_AT
+    print_log("SIM800 shutdown REBOOT\n\r");
+   #endif
    vTaskDelay(5000 / portTICK_RATE_MS);
+
    }
   else
 		{
@@ -1093,7 +1097,7 @@ bool sim800::gsm_init()
  println(F("AT+CGATT?"));
  if(expect(F("+CGATT: 0"), 3000)) //проверка регистрации в GPRS сети
  {
-  shutdown(false);
+  shutdown(true);
   return result;
  }
  result = conn();
