@@ -1,7 +1,7 @@
 #ifndef _GSM_TOOLS_H_
 #define _GSM_TOOLS_H_
 
-// #define DEBUG_GSM
+ #define DEBUG_GSM
 
 ////////////////GSM////////////////
 void gsm_restart()
@@ -29,6 +29,7 @@ void gsm_restart()
 	printf("GSM: Saved last time %d\n", last_time_stamp_sended);
 	printf("GSM: ESP_RESTART\n");
 #endif
+ modem.shutdown(true);
 	esp_restart();
 	// }
 }
