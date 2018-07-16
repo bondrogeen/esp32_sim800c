@@ -439,12 +439,14 @@ void nvs_sync_with_server(void* params)
 			// printf("NVS: **********************\n");
 		// }
 	// #endif
+  modem.not_reboot(true);
 		last_time_stamp = check_timestamp_from_http();
 		// gsm_send_signal(false);
 		gsm_send_firmware_version();
 		gsm_send_imei();
 		gsm_send_id_sim_card();
 		gsm_send_location();
+  modem.not_reboot(false);
 	}
 	else
 	{

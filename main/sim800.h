@@ -41,6 +41,8 @@
 #define SIM800_KEY GPIO_NUM_21
 #define SIM800_PS GPIO_NUM_27
 #define SIM800_POWER GPIO_NUM_14
+#define RESTARTBOARD_NOT_REBOOT GPIO_NUM_33
+#define RESTARTBOARD_CHECK_WORK GPIO_NUM_25
 #ifdef F
 #undef F
 #define F(s) (s)
@@ -68,6 +70,7 @@ public:
  bool checkOK();
  bool conn();
  void check();
+ void not_reboot(bool val);
  bool disconn();
  void init_settings();
  bool reconnect();
