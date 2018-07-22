@@ -49,10 +49,6 @@ void sim800::begin()
   pinMode(SIM800_POWER, OUTPUT);
 		pinMode(SIM800_KEY, OUTPUT);
   digitalWrite(SIM800_KEY, LOW);
-  pinMode(RESTARTBOARD_NOT_REBOOT, OUTPUT);
-  digitalWrite(RESTARTBOARD_NOT_REBOOT, LOW);
-  pinMode(RESTARTBOARD_CHECK_WORK, OUTPUT);
-  digitalWrite(RESTARTBOARD_CHECK_WORK, HIGH);
 		pinMode(SIM800_PS, INPUT);
 		// _serial.setTimeout(50);
 		_serial.setTimeout(SIM800_SERIAL_TIMEOUT);
@@ -62,16 +58,6 @@ void sim800::begin()
 	#endif
 		serial_worked = true;
 	}
-}
-
-void sim800::check()
-{
- digitalWrite(RESTARTBOARD_CHECK_WORK, !digitalRead(RESTARTBOARD_CHECK_WORK));
-}
-
-void sim800::not_reboot(bool val)
-{
- digitalWrite(RESTARTBOARD_NOT_REBOOT, (val ? HIGH : LOW));
 }
 
 void sim800::init_settings(){

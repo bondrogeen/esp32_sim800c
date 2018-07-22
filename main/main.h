@@ -35,6 +35,9 @@ WROVER_KIT_LCD wroverlcd;
 #define OTA_SD_BUFFER_SIZE 4096
 #define OTA_SD_FILE_NAME "/sdcard/update.bin"
 
+#define RESTARTBOARD_NOT_REBOOT GPIO_NUM_33
+#define RESTARTBOARD_CHECK_WORK GPIO_NUM_25
+
 #define SENDED_FILE_NAME "/db/sended.txt"
 #define REMOTE_PORT 80
 #define REMOTE_HOST "service-pb.ru"
@@ -114,6 +117,10 @@ HardwareSerial portcci = HardwareSerial(CCI_UART_NUM);
 static bool gsm_no_problem = false, download_firmware = false;
 sim800 modem = sim800();
 static uint16_t http_critical_status = 599;
+
+void check();
+void not_reboot(bool val);
+void initGPIO();
 
 SemaphoreHandle_t xSemaphore = NULL;
 

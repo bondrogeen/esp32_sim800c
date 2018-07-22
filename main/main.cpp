@@ -1,5 +1,22 @@
 #include "main.h"
 
+void initGPIO(){
+  pinMode(RESTARTBOARD_NOT_REBOOT, OUTPUT);
+  digitalWrite(RESTARTBOARD_NOT_REBOOT, LOW);
+  pinMode(RESTARTBOARD_CHECK_WORK, OUTPUT);
+  digitalWrite(RESTARTBOARD_CHECK_WORK, HIGH);
+}
+
+void check()
+{
+ digitalWrite(RESTARTBOARD_CHECK_WORK, !digitalRead(RESTARTBOARD_CHECK_WORK));
+}
+
+void not_reboot(bool val)
+{
+ digitalWrite(RESTARTBOARD_NOT_REBOOT, (val ? HIGH : LOW));
+}
+
 void nvs_data_save(const char* data)
 {
 	if(hnvs)
@@ -180,7 +197,7 @@ static void cci_task(void*)
 
 time_t check_timestamp_from_http()
 {
- modem.check();
+ check();
 	time_t time_array[]  = {gsm_get_time_from_http(), get_time_stamp(), default_current_time_stamp, last_time_stamp_sended, last_time_stamp};
 	last_time_stamp_sended = get_max_time_stamp(time_array);
 #ifdef DEBUG_MAIN
@@ -410,7 +427,10 @@ void nvs_sync_with_server(void* params)
 	printf("NVS: **********************\n\r");
 #endif
 	// while(xSemaphoreTakeFromISR(xSemaphore, NULL) != pdPASS) {vTaskDelay(3000 / portTICK_RATE_MS);}
+
+ not_reboot(true);
 	gsm_no_problem = modem.gsm_init();
+
 	if(gsm_no_problem)
 	{
 	#ifdef DEBUG_NVS
@@ -439,14 +459,13 @@ void nvs_sync_with_server(void* params)
 			// printf("NVS: **********************\n");
 		// }
 	// #endif
-  modem.not_reboot(true);
 		last_time_stamp = check_timestamp_from_http();
 		// gsm_send_signal(false);
 		gsm_send_firmware_version();
 		gsm_send_imei();
 		gsm_send_id_sim_card();
 		gsm_send_location();
-  modem.not_reboot(false);
+//  modem.not_reboot(false);
 	}
 	else
 	{
@@ -472,6 +491,7 @@ void nvs_sync_with_server(void* params)
 		time_stamp_reboot_gsm = last_time_stamp_sended;
 		while(1)
 		{
+   check();
 		#ifdef DEBUG_NVS
 			print_log("NVS: CASH DATA COUNTER: %d\n\r", nvs_data_counter);
 		#endif
@@ -658,6 +678,7 @@ extern "C" void app_main()
 	#endif
 #endif
 	init_spi();
+ initGPIO();
 	xSemaphore = xSemaphoreCreateMutex();
 	initArduino();
 #ifdef USE_USB_SERIAL
