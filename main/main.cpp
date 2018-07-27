@@ -17,6 +17,159 @@ void not_reboot(bool val)
  digitalWrite(RESTARTBOARD_NOT_REBOOT, (val ? HIGH : LOW));
 }
 
+void led_on(bool on)
+{
+	pinMode(GPIO_NUM_21, OUTPUT);
+	if(on)
+	{
+		digitalWrite(GPIO_NUM_21, HIGH);
+		pinMode(GPIO_NUM_21, INPUT_PULLUP);// make pin unused (do not leak)
+	}
+	else
+	{
+		digitalWrite(GPIO_NUM_21, LOW);
+		vTaskDelay(1100 / portTICK_RATE_MS);
+		digitalWrite(GPIO_NUM_21, HIGH);
+		vTaskDelay(1100 / portTICK_RATE_MS);
+		// vTaskDelay(35000 / portTICK_RATE_MS);
+		digitalWrite(GPIO_NUM_21, HIGH);
+		pinMode(GPIO_NUM_21, INPUT_PULLUP);// make pin unused (do not leak)
+	}
+}
+
+/////////////OTA SD//////////////
+void ota_from_sd_card()
+{
+	if(!has_sd_card)
+	{
+	#ifdef DEBUG_OTA
+		printf("OTA_SD: SD CARD NOT FOUND\n\r");
+	#endif
+	}
+	else
+	{
+	#ifdef DEBUG_OTA
+		printf("OTA_SD: SEARCH FILE %s\n\r", OTA_SD_FILE_NAME);
+	#endif
+		if(stat(OTA_SD_FILE_NAME, &st) != 0)
+		{
+		#ifdef DEBUG_OTA
+			printf("OTA_SD: FILE NOT EXISTS\n\r");
+		#endif
+			return;
+		}
+		else
+		{
+			FILE* update_file = fopen(OTA_SD_FILE_NAME, "rb");
+			if(!update_file)
+			{
+			#ifdef DEBUG_OTA
+				printf("OTA_SD: FILE NOT OPENED\n\r");
+			#endif
+				return;
+			}
+			else
+			{
+				char* buf = (char*)malloc(OTA_SD_BUFFER_SIZE);
+				if(buf)
+				{
+					esp_err_t err;
+					esp_ota_handle_t ota_handle = 0 ;
+					const esp_partition_t *update_partition = NULL;
+				#ifdef DEBUG_OTA
+					printf("OTA_SD: Starting OTA...\n\r");
+					const esp_partition_t *configured = esp_ota_get_boot_partition();
+					const esp_partition_t *running = esp_ota_get_running_partition();
+					if(configured != running)
+					{
+						printf("OTA_SD: Configured OTA boot partition at offset 0x%08x, but running from offset 0x%08x\n\r", configured->address, running->address);
+						printf("OTA_SD: (This can happen if either the OTA boot data or preferred boot image become corrupted somehow.)\n\r");
+					}
+					printf("OTA_SD: Running partition type %d subtype %d (offset 0x%08x)\n\r", running->type, running->subtype, running->address);
+				#endif
+					update_partition = esp_ota_get_next_update_partition(NULL);
+					assert(update_partition != NULL);
+				#ifdef DEBUG_OTA
+					printf("OTA_SD: Writing to partition subtype %d at offset 0x%x\n\r", update_partition->subtype, update_partition->address);
+				#endif
+					err = esp_ota_begin(update_partition, OTA_SIZE_UNKNOWN, &ota_handle);
+					if(err != ESP_OK)
+					{
+					#ifdef DEBUG_OTA
+						printf("OTA_SD: esp_ota_begin failed, error=%d\n\r", err);
+					#endif
+					}
+					else
+					{
+					#ifdef DEBUG_OTA
+						printf("OTA_SD: ESP_OTA_BEGIN SUCCEEDED\n\r");
+						uint32_t readed_ota_bytes = 0, step = 0;
+					#endif
+						uint32_t buff_len = OTA_SD_BUFFER_SIZE;
+					#ifdef DEBUG_OTA
+						printf("OTA_SD: ESP_OTA_WRITE RESULT: %d (LENGTH %d) \n\r", err, buff_len);
+					#endif
+						// while(fgets(buf, OTA_SD_BUFFER_SIZE, update_file) != NULL)
+						while(fread(buf, 1, OTA_SD_BUFFER_SIZE, update_file) > 0)
+						{
+							// memset(buf, 0, OTA_SD_BUFFER_SIZE);
+							// buff_len = update_file.read(buf, OTA_SD_BUFFER_SIZE);
+							err = esp_ota_write(ota_handle, (const void*)buf, buff_len);
+							memset(buf, 0, OTA_SD_BUFFER_SIZE);
+						#ifdef DEBUG_OTA
+							readed_ota_bytes += buff_len;
+							printf("OTA_SD: ESP_OTA_WRITE RESULT: %d (LENGTH %d) STEP=%d \n\r", err, buff_len, step);
+							step++;
+						#endif
+							ESP_ERROR_CHECK(err);
+							if(err != ESP_OK) break;
+						}
+						fclose(update_file);
+					#ifdef DEBUG_OTA
+						printf("OTA_SD: Total Write binary data length : %d\n\r", readed_ota_bytes);
+					#endif
+						if(esp_ota_end(ota_handle) != ESP_OK)
+						{
+						#ifdef DEBUG_OTA
+							printf("OTA_SD: esp_ota_end failed!\n\r");
+						#endif
+						}
+						else
+						{
+							err = esp_ota_set_boot_partition(update_partition);
+							if(err != ESP_OK)
+							{
+							#ifdef DEBUG_OTA
+								printf("OTA_SD: esp_ota_set_boot_partition failed! err=0x%x\n\r", err);
+							#endif
+							}
+							else
+							{
+							#ifdef DEBUG_OTA
+								printf("OTA_SD: Prepare to restart system!\n\r");
+							#endif
+								free(buf);
+								if(remove(OTA_SD_FILE_NAME) != 0)
+									rename(OTA_SD_FILE_NAME, "/sdcard/update.bak");
+								close_sd_card();
+								esp_restart();
+							}
+						}
+					}
+					free(buf);
+				}
+				else
+				{
+				#ifdef DEBUG_OTA
+					printf("OTA_SD: ERROR BUFFER ALLOCATION\n\r");
+				#endif
+				}
+			}
+		}
+	}
+}
+
+
 void nvs_data_save(const char* data)
 {
 	if(hnvs)
@@ -699,6 +852,7 @@ extern "C" void app_main()
 	{
 		ota_from_sd_card();
 		sd_create_system_info(id_controller + "\nFIRMWARE_" + FIRMWARE_VERSION);
+		delay(1000);
 	}
 	xTaskCreatePinnedToCore(&nvs_sync_with_server, "SyncTask", stack_size_sync, NULL, 0, NULL, 1);
 	xTaskCreatePinnedToCore(&cci_task, "CciUartTask", stack_size_cci, NULL, 32, NULL, 0);

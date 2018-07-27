@@ -1,7 +1,7 @@
 #ifndef _SD_TOOLS_H_
 #define _SD_TOOLS_H_
 
-// #define DEBUG_SD
+ #define DEBUG_SD
 
 #ifdef DEBUG_WROVER_LCD
 #define PIN_NUM_MISO GPIO_NUM_2
@@ -58,7 +58,7 @@ void init_spi()
 	// gpio_set_pull_mode(GPIO_NUM_13, GPIO_PULLUP_ONLY);   // D3, needed in 4- and 1-line modes
 #endif
 #ifdef DEBUG_SD
-	printf("\nSD: miso = %d, mosi = %d, sck(clk) = %d, cs(ss) = %d\n", PIN_NUM_MISO, PIN_NUM_MOSI, PIN_NUM_CLK, PIN_NUM_CS);
+	printf("SD: miso = %d, mosi = %d, sck(clk) = %d, cs(ss) = %d\n\r", PIN_NUM_MISO, PIN_NUM_MOSI, PIN_NUM_CLK, PIN_NUM_CS);
 #endif
 }
 
@@ -110,7 +110,7 @@ void sd_create_binary_file(const char* fn, char* data)
 	#ifdef DEBUG_SD
 		fflush(f);
 		fseek(f , 0, SEEK_END);
-		printf("SD: FILE %s CREATED, SIZE %ld\n", fn, ftell(f));
+		printf("SD: FILE %s CREATED, SIZE %ld\n\r", fn, ftell(f));
 	#endif
 		fclose(f);
 	}
@@ -118,7 +118,7 @@ void sd_create_binary_file(const char* fn, char* data)
 	else
 	{
 		perror(fn);
-		printf("SD: ERROR OPEN FILE %s = %p\n", fn, f);
+		printf("SD: ERROR OPEN FILE %s = %p\n\r", fn, f);
 	}
 #endif
 }
@@ -131,14 +131,14 @@ void sd_create_system_info(String data)
 		fprintf(f, "%s\n", data.c_str());
 		fclose(f);
 	#ifdef DEBUG_SD
-		printf("SD: FILE %s CREATED\n", system_file_name);
+		printf("SD: FILE %s CREATED\n\r", system_file_name);
 	#endif
 	}
 #ifdef DEBUG_SD
 	else
 	{
+		printf("SD: ERROR OPEN FILE %s = %p\n\r", system_file_name, f);
 		perror(system_file_name);
-		printf("SD: ERROR OPEN FILE %s = %p\n", system_file_name, f);
 	}
 #endif
 }
@@ -154,6 +154,7 @@ bool check_sd_card()
 		has_sd_card = true;
 	#ifdef DEBUG_SD
 		sdmmc_card_print_info(stdout, card);
+		printf("\n\r");
 		// const char* file_name = "/sdcard/debug.txt";
 		// FILE* f = NULL;
 		// if (stat(file_name, &st) == 0)
@@ -180,11 +181,11 @@ bool check_sd_card()
 		has_sd_card = false;
 	#ifdef DEBUG_SD
 		if(ret == ESP_FAIL)
-		{printf("SD: Failed to mount filesystem. If you want the card to be formatted, set format_if_mount_failed = true.");}
+		{printf("SD: Failed to mount filesystem. If you want the card to be formatted, set format_if_mount_failed = true.\n\r");}
 		else
 		{
-			printf("SD: Failed to initialize the card (%s).\n", error_description(ret));
-			printf("SD: Make sure SD card lines have pull-up resistors in place or you not correct setup pins.");
+			printf("SD: Failed to initialize the card (%s).\n\r", error_description(ret));
+			printf("SD: Make sure SD card lines have pull-up resistors in place or you not correct setup pins.\n\r");
 		}
 	#endif
 	}
